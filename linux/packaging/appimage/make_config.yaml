@@ -13,3 +13,6 @@ categories:
   - Music
   - AudioVideo
 startup_notify: true
+include:
+  - from: linux/packaging/appimage/AppRun
+    to: AppRun

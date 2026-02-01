@@ -1,0 +1,108 @@
+name: Build Linux desktop packages
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  linux-packages:
+    name: Build Linux (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+            appimage_arch: x86_64
+            flutter_arch: x64
+            dist_job: release-dev-linux-appimage
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            appimage_arch: aarch64
+            flutter_arch: arm64
+            dist_job: release-dev-linux-appimage
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Flutter (git clone)
+        run: |
+          git clone https://github.com/flutter/flutter.git -b stable --depth 1 $HOME/flutter
+          [ -n "$GITHUB_PATH" ] && echo "$HOME/flutter/bin" >> "$GITHUB_PATH" || echo "GITHUB_PATH not set"
+
+      - name: Install Linux desktop dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libmpv-dev fuse build-essential libfuse2
+
+      - name: Install appimagetool
+        env:
+          APPIMAGE_ARCH: ${{ matrix.appimage_arch }}
+        run: |
+          sudo wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-$APPIMAGE_ARCH.AppImage -O /usr/local/bin/appimagetool
+          sudo chmod +x /usr/local/bin/appimagetool
+          sudo apt-get install -y libfuse2
+
+      - name: Enable Linux desktop
+        run: |
+          export PATH="$HOME/flutter/bin:$PATH"
+          flutter config --enable-linux-desktop
+
+      - name: Install flutter_distributor
+        run: |
+          export PATH="$HOME/flutter/bin:$PATH"
+          flutter pub get
+          flutter pub global activate flutter_distributor
+          [ -n "$GITHUB_PATH" ] && echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH" || echo "GITHUB_PATH not set"
+
+      - name: Debug flutter_distributor
+        run: |
+          export PATH="$HOME/flutter/bin:$HOME/.pub-cache/bin:$PATH"
+          ls -la
+          cat distribute_options.yaml
+          flutter_distributor release --name dev --dry-run || true
+
+      - name: Copy icon for AppImage packaging
+        run: |
+          cp icons/Echo.png icon.png
+
+      - name: Build Linux package (AppImage only)
+        env:
+          DIST_JOB: ${{ matrix.dist_job }}
+        run: |
+          export PATH="$HOME/flutter/bin:$HOME/.pub-cache/bin:$PATH"
+          flutter_distributor release --name dev --jobs "$DIST_JOB"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: echo-linux-${{ matrix.arch }}
+          path: dist/**
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: linux-packages
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Attach packages to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/**/*.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

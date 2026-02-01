@@ -99,6 +99,15 @@ jobs:
         with:
           path: artifacts
 
+      - name: Rename AppImages with architecture suffix
+        run: |
+          cd artifacts
+          for dir in echo-linux-*; do
+            arch="${dir#echo-linux-}"
+            find "$dir" -name "*.AppImage" -exec bash -c 'mv "$1" "${1%.AppImage}-'"$arch"'.AppImage"' _ {} \;
+          done
+          find . -name "*.AppImage" -ls
+
       - name: Attach packages to GitHub Release
         uses: softprops/action-gh-release@v2
         with:

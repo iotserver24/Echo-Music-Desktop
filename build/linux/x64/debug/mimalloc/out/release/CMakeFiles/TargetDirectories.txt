@@ -1,0 +1,14 @@
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/mimalloc.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/mimalloc-static.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/mimalloc-obj.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/mimalloc-obj-target.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/mimalloc-test-api.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/mimalloc-test-api-fill.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/mimalloc-test-stress.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/test.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/edit_cache.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/rebuild_cache.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/list_install_components.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/install.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/install/local.dir
+/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release/CMakeFiles/install/strip.dir

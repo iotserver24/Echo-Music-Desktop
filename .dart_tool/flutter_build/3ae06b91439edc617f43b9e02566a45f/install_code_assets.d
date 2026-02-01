@@ -1,0 +1,1 @@
+ /home/r3ap3reditz/codes/Echo-Music-Desktop/.dart_tool/flutter_build/3ae06b91439edc617f43b9e02566a45f/native_assets.json: 

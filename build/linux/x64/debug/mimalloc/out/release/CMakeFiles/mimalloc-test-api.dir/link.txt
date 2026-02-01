@@ -1,1 +1,0 @@
-/usr/bin/cc -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/mimalloc-test-api.dir/link.d "CMakeFiles/mimalloc-test-api.dir/test/test-api.c.o" -o mimalloc-test-api  -Wl,-rpath,/home/r3ap3reditz/codes/Echo-Music-Desktop/build/linux/x64/debug/mimalloc/out/release libmimalloc.so.2.1 /usr/lib64/libpthread.a /usr/lib64/librt.a

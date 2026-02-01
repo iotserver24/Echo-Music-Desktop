@@ -1,5 +1,5 @@
 display_name: Echo Music
-app_name: echo
+app_name: Echo
 icon: icon.png
 keywords:
   - Music
@@ -13,6 +13,3 @@ categories:
   - Music
   - AudioVideo
 startup_notify: true
-include:
-  - from: linux/packaging/appimage/AppRun
-    to: AppRun

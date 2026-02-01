@@ -1,0 +1,15 @@
+display_name: Echo Music
+app_name: echo
+icon: icon.png
+keywords:
+  - Music
+  - Player
+  - YouTube
+  - Streaming
+  - Audio
+generic_name: Music Player
+categories:
+  - Audio
+  - Music
+  - AudioVideo
+startup_notify: true

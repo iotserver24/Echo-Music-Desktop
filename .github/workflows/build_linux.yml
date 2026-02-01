@@ -75,12 +75,45 @@ jobs:
         run: |
           cp icons/Echo.png icon.png
 
-      - name: Build Linux package (AppImage only)
-        env:
-          DIST_JOB: ${{ matrix.dist_job }}
+      - name: Build Linux app (release)
         run: |
-          export PATH="$HOME/flutter/bin:$HOME/.pub-cache/bin:$PATH"
-          flutter_distributor release --name dev --jobs "$DIST_JOB"
+          export PATH="$HOME/flutter/bin:$PATH"
+          flutter build linux --release
+
+      - name: Bundle libmpv into app (so users don't need to install it)
+        run: |
+          BUNDLE="build/linux/${{ matrix.flutter_arch }}/release/bundle"
+          LIBDIR="/usr/lib/$(uname -m)-linux-gnu"
+          cp -n "$LIBDIR"/libmpv.so* "$BUNDLE/lib/" || true
+          ls -la "$BUNDLE/lib"/libmpv* 2>/dev/null || echo "libmpv copied"
+
+      - name: Create AppImage (with bundled libmpv)
+        run: |
+          export PATH="$HOME/flutter/bin:$PATH"
+          BUNDLE="build/linux/${{ matrix.flutter_arch }}/release/bundle"
+          mkdir -p Echo.AppDir/usr/bin Echo.AppDir/usr/lib Echo.AppDir/usr/share/echo
+          cp "$BUNDLE/Echo" Echo.AppDir/usr/bin/
+          cp "$BUNDLE/lib"/*.so Echo.AppDir/usr/lib/ 2>/dev/null || true
+          cp -r "$BUNDLE/data" Echo.AppDir/usr/share/echo/
+          cp icon.png Echo.AppDir/Echo.png
+          cat > Echo.AppDir/AppRun << 'APPRUN'
+          #!/bin/bash
+          APPDIR="$(dirname "$(readlink -f "$0")")"
+          export LD_LIBRARY_PATH="$APPDIR/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          exec "$APPDIR/usr/bin/Echo" "$@"
+          APPRUN
+          chmod +x Echo.AppDir/AppRun
+          cat > Echo.AppDir/Echo.desktop << 'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=Echo Music
+          Icon=Echo
+          Exec=Echo
+          Categories=Audio;Music;AudioVideo;
+          DESKTOP
+          ARCH=${{ matrix.appimage_arch }} appimagetool Echo.AppDir
+          mkdir -p dist
+          mv Echo*.AppImage dist/ || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

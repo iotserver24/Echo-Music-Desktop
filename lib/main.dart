@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_it/get_it.dart';
@@ -56,7 +57,24 @@ void main() async {
 
     // Initialize JustAudioMediaKit for Windows, Linux, and macOS
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      JustAudioMediaKit.ensureInitialized();
+      // Prefer bundled libmpv (in lib/ next to executable or in usr/lib when in AppImage) so users don't need to install it
+      String? bundledLibmpv;
+      try {
+        final exeFile = File(Platform.resolvedExecutable);
+        final exeDir = exeFile.parent.path;
+        final libDirs = [path.join(exeDir, 'lib'), path.join(exeFile.parent.parent.path, 'lib')];
+        for (final libDir in libDirs) {
+          for (final name in ['libmpv.so.2', 'libmpv.so.1', 'libmpv.so']) {
+            final candidate = path.join(libDir, name);
+            if (File(candidate).existsSync()) {
+              bundledLibmpv = candidate;
+              break;
+            }
+          }
+          if (bundledLibmpv != null) break;
+        }
+      } catch (_) {}
+      JustAudioMediaKit.ensureInitialized(libmpv: bundledLibmpv);
       JustAudioMediaKit.bufferSize = 8 * 1024 * 1024;
       JustAudioMediaKit.title = 'Echo Music';
       JustAudioMediaKit.prefetchPlaylist = true;
@@ -111,24 +129,65 @@ void main() async {
   } catch (e, stackTrace) {
     debugPrint('Initialization error: $e');
     debugPrint('Stack trace: $stackTrace');
+    final String errStr = e.toString();
+    final bool isLibmpv = errStr.contains('libmpv') && Platform.isLinux;
+    final bool isLockError = errStr.contains('lock failed') ||
+        (e is FileSystemException && e.osError?.errorCode == 11);
     runApp(MaterialApp(
       home: Scaffold(
         backgroundColor: Colors.black,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error, color: Colors.red, size: 50),
-                const SizedBox(height: 20),
-                const Text('Failed to start Echo Music', 
-                    style: TextStyle(color: Colors.white, fontSize: 18)),
-                const SizedBox(height: 10),
-                Text('$e', 
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    textAlign: TextAlign.center),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error, color: Colors.red, size: 50),
+                  const SizedBox(height: 20),
+                  const Text('Failed to start Echo Music',
+                      style: TextStyle(color: Colors.white, fontSize: 18)),
+                  const SizedBox(height: 10),
+                  Text(errStr,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      textAlign: TextAlign.center),
+                  if (isLibmpv) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Install libmpv:',
+                      style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Fedora: sudo dnf install mpv-libs\n'
+                      'Debian/Ubuntu: sudo apt install libmpv-dev',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  if (isLockError) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Another instance may be running. Close it and try again.',
+                      style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'If the problem persists:\n'
+                      'rm -f ~/.local/share/com.echo.music/database/*.lock',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         ),
@@ -176,10 +235,26 @@ Future<void> initialiseHive() async {
         "${(await getApplicationSupportDirectory()).path}/database";
   }
   await Hive.initFlutter(applicationDataDirectoryPath);
-  await Hive.openBox('SETTINGS');
-  await Hive.openBox('LIBRARY');
-  await Hive.openBox('SEARCH_HISTORY');
-  await Hive.openBox('SONG_HISTORY');
-  await Hive.openBox('FAVOURITES');
-  await Hive.openBox('DOWNLOADS');
+  const int maxLockRetries = 3;
+  const Duration lockRetryDelay = Duration(milliseconds: 800);
+  final boxNames = ['SETTINGS', 'LIBRARY', 'SEARCH_HISTORY', 'SONG_HISTORY', 'FAVOURITES', 'DOWNLOADS'];
+    for (final name in boxNames) {
+    int attempt = 0;
+    while (true) {
+      try {
+        await Hive.openBox(name);
+        break;
+      } catch (e) {
+        final isLockError = (e is FileSystemException &&
+                (e.osError?.errorCode == 11 || e.message.contains('lock'))) ||
+            e.toString().contains('lock failed');
+        if (isLockError && attempt < maxLockRetries) {
+          attempt++;
+          await Future<void>.delayed(lockRetryDelay);
+          continue;
+        }
+        rethrow;
+      }
+    }
+  }
 }

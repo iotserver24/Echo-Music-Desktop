@@ -56,6 +56,14 @@ Echo Music is available as an AppImage, DEB, and RPM package.
 
 To build Echo Music locally, ensure you have Flutter installed and configured for desktop development.
 
+### Linux: libmpv for audio
+
+**Released AppImages** include libmpv, so no extra install is needed.  
+If you **build from source** or run `flutter run -d linux` without a bundled lib, install libmpv first:
+
+- **Fedora / RHEL:** `sudo dnf install mpv-libs`
+- **Debian / Ubuntu:** `sudo apt install libmpv-dev`
+
 1.  **Clone the Repository**
     ```bash
     git clone https://github.com/iad1tya/Echo-Music.git

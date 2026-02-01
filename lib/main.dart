@@ -26,70 +26,115 @@ import 'services/yt_audio_stream.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await initialiseHive();
-
-  // Initialize JustAudioBackground for notifications and background playback
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.echo.music.audio',
-    androidNotificationChannelName: 'Echo Music',
-    androidNotificationOngoing: true,
-    androidShowNotificationBadge: true,
-  );
-
-  // Initialize JustAudioMediaKit for Windows, Linux, and macOS
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    JustAudioMediaKit.ensureInitialized();
-    JustAudioMediaKit.bufferSize = 8 * 1024 * 1024;
-    JustAudioMediaKit.title = 'Echo Music';
-    JustAudioMediaKit.prefetchPlaylist = true;
-    JustAudioMediaKit.pitch = true;
-  }
-
-  String? visitorId = await Hive.box('SETTINGS').get('VISITOR_ID');
-
-  YTMusic ytMusic = YTMusic(
-    config:
-        YTConfig(visitorData: visitorId ?? '', language: 'en', location: 'IN'),
-    onIdUpdate: (visitorId) async {
-      await Hive.box('SETTINGS').put('VISITOR_ID', visitorId);
-    },
-  );
-
-  final GlobalKey<NavigatorState> panelKey = GlobalKey<NavigatorState>();
-
-  await FileStorage.initialise();
-  FileStorage fileStorage = FileStorage();
-  SettingsManager settingsManager = SettingsManager();
-
-  GetIt.I.registerSingleton<SettingsManager>(settingsManager);
-
-  // Start Local Audio Server
-  final String audioStreamUrl = await createAudioStreamServer();
-  GetIt.I.registerSingleton<String>(audioStreamUrl,
-      instanceName: 'audioStreamUrl');
-
-  MediaPlayer mediaPlayer = MediaPlayer();
-  GetIt.I.registerSingleton<MediaPlayer>(mediaPlayer);
-  LibraryService libraryService = LibraryService();
-  GetIt.I.registerSingleton<DownloadManager>(DownloadManager());
-  GetIt.I.registerSingleton(panelKey);
-  GetIt.I.registerSingleton<YTMusic>(ytMusic);
-
-  GetIt.I.registerSingleton<FileStorage>(fileStorage);
-
-  GetIt.I.registerSingleton<LibraryService>(libraryService);
-  GetIt.I.registerSingleton<LyricsService>(LyricsService());
-
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => settingsManager),
-        ChangeNotifierProvider(create: (_) => mediaPlayer),
-        ChangeNotifierProvider(create: (_) => libraryService),
-      ],
-      child: const Echo(),
+  // Show a loading app while initializing
+  runApp(const MaterialApp(
+    home: Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: Colors.white),
+            SizedBox(height: 20),
+            Text('Loading Echo Music...', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+      ),
     ),
-  );
+  ));
+
+  try {
+    await initialiseHive();
+
+    // Initialize JustAudioBackground for notifications and background playback
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.echo.music.audio',
+      androidNotificationChannelName: 'Echo Music',
+      androidNotificationOngoing: true,
+      androidShowNotificationBadge: true,
+    );
+
+    // Initialize JustAudioMediaKit for Windows, Linux, and macOS
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      JustAudioMediaKit.ensureInitialized();
+      JustAudioMediaKit.bufferSize = 8 * 1024 * 1024;
+      JustAudioMediaKit.title = 'Echo Music';
+      JustAudioMediaKit.prefetchPlaylist = true;
+      JustAudioMediaKit.pitch = true;
+    }
+
+    String? visitorId = await Hive.box('SETTINGS').get('VISITOR_ID');
+
+    YTMusic ytMusic = YTMusic(
+      config:
+          YTConfig(visitorData: visitorId ?? '', language: 'en', location: 'IN'),
+      onIdUpdate: (visitorId) async {
+        await Hive.box('SETTINGS').put('VISITOR_ID', visitorId);
+      },
+    );
+
+    final GlobalKey<NavigatorState> panelKey = GlobalKey<NavigatorState>();
+
+    await FileStorage.initialise();
+    FileStorage fileStorage = FileStorage();
+    SettingsManager settingsManager = SettingsManager();
+
+    GetIt.I.registerSingleton<SettingsManager>(settingsManager);
+
+    // Start Local Audio Server
+    final String audioStreamUrl = await createAudioStreamServer();
+    GetIt.I.registerSingleton<String>(audioStreamUrl,
+        instanceName: 'audioStreamUrl');
+
+    MediaPlayer mediaPlayer = MediaPlayer();
+    GetIt.I.registerSingleton<MediaPlayer>(mediaPlayer);
+    LibraryService libraryService = LibraryService();
+    GetIt.I.registerSingleton<DownloadManager>(DownloadManager());
+    GetIt.I.registerSingleton(panelKey);
+    GetIt.I.registerSingleton<YTMusic>(ytMusic);
+
+    GetIt.I.registerSingleton<FileStorage>(fileStorage);
+
+    GetIt.I.registerSingleton<LibraryService>(libraryService);
+    GetIt.I.registerSingleton<LyricsService>(LyricsService());
+
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => settingsManager),
+          ChangeNotifierProvider(create: (_) => mediaPlayer),
+          ChangeNotifierProvider(create: (_) => libraryService),
+        ],
+        child: const Echo(),
+      ),
+    );
+  } catch (e, stackTrace) {
+    debugPrint('Initialization error: $e');
+    debugPrint('Stack trace: $stackTrace');
+    runApp(MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error, color: Colors.red, size: 50),
+                const SizedBox(height: 20),
+                const Text('Failed to start Echo Music', 
+                    style: TextStyle(color: Colors.white, fontSize: 18)),
+                const SizedBox(height: 10),
+                Text('$e', 
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    textAlign: TextAlign.center),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ));
+  }
 }
 
 class Echo extends StatelessWidget {

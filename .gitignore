@@ -1,0 +1,22 @@
+# Cursor / debug
+.cursor/debug.log
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+# IDE
+.vscode/
+*.iml
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage / test
+coverage/
+*.log

@@ -4,9 +4,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../ytmusic/ytmusic.dart';
 
-Box _box = Hive.box('SETTINGS');
-
 class SettingsManager extends ChangeNotifier {
+  late final Box _box = Hive.box('SETTINGS');
+
   ThemeMode _themeMode = ThemeMode.system;
   final List<ThemeMode> _themeModes = [
     ThemeMode.system,
